@@ -8,31 +8,57 @@
 #ifndef INC_ADS1299_H__
 #define INC_ADS1299_H__
 
+#define	USE_HARDWARE_START
+#define USE_HARDWARE_RESET
 
 typedef enum {
 	CS_ENABLE=0,
 	CS_DISABLE
-} csState_t;
+}csState_t;
+
+typedef enum {
+	EXTERNAL_CLOCK=0,
+	INTERNAL_CLOCK
+}clkSel_t;
+
+typedef enum {
+	START_DISABLE=0,
+	START_ENABLE
+}startState_t;
+
+typedef enum {
+	RESET_ENABLE=0,
+	RESET_DISABLE
+}resetState_t;
+
+typedef enum {
+	PWDN_ENABLE=0,
+	PWDN_DISABLE
+}pwdnState_t;
 
 typedef enum {
 	//System Commands
-	WAKEUP 	= 0x02,	/*!< Wake-up from standby mode */
-	STANDBY = 0x04,	/*!< Enter standby mode */
-	RESET	= 0x06,	/*!< Reset the device */
-	START	= 0x08,	/*!< Start and restart (synchronize) conversions */
-	STOP	= 0x0A,	/*!< Stop conversion */
+	NULL_CMD	= 0x00,
+	WAKEUP_CMD 	= 0x02,	/*!< Wake-up from standby mode */
+	STANDBY_CMD = 0x04,	/*!< Enter standby mode */
+	RESET_CMD	= 0x06,	/*!< Reset the device */
+	START_CMD	= 0x08,	/*!< Start and restart (synchronize) conversions */
+	STOP_CMD	= 0x0A,	/*!< Stop conversion */
 	//Data Read Commands
-	RDATAC	= 0x10,	/*!< Enable Read Data Continuous mode.
-					 *  This mode is the default mode at power-up */
-	SDATAC	= 0x11,	/*!< Stop Read Data Continuously mode */
-	RDATA	= 0x12,	/*!< Read data by command; supports multiple read back */
+	RDATAC_CMD	= 0x10,	/*!< Enable Read Data Continuous mode.
+					 	 *  This mode is the default mode at power-up */
+
+	SDATAC_CMD	= 0x11,	/*!< Stop Read Data Continuously mode */
+	RDATA_CMD	= 0x12,	/*!< Read data by command; supports multiple read back */
+	//Register Read Commands
+	RREG_CMD	= 0x20,
+	WREG_CMD	= 0x40,
 }commands_t;
 
 typedef enum {
-	//Register Read Commands
-		RREG	= 0x20,
-		WREG	= 0x40,
-}regCommands_t;
+	BY_CMD,
+	BY_GPIO
+}driveType_t;
 
 typedef enum {
 	ID,
@@ -91,8 +117,13 @@ typedef struct {
  * typedefs para simplificar la lectura, puntero a funcion
  */
 typedef void (*csFunction_t)(csState_t);
+typedef void (*clkSelFunction_t)(clkSel_t);
+typedef void (*startFunction_t)(startState_t);
+typedef void (*resetFunction_t)(resetState_t);
+typedef void (*pwdnFunction_t)(pwdnState_t);
 typedef void (*commandSend_t)(commands_t);
-typedef uint16_t (*spiRead_t)(void);
+typedef uint8_t (*spiRead_t)(void);
+typedef void (*spiWrite_t)(uint8_t);
 typedef void (*delay2us_t)(int32_t);
 
 
@@ -102,8 +133,13 @@ typedef void (*delay2us_t)(int32_t);
 
 typedef struct {
 	csFunction_t chip_select_ctrl;
+	clkSelFunction_t clkSel_ctrl;
+	startFunction_t start_ctrl;
+	resetFunction_t reset_ctrl;
+	pwdnFunction_t pwdn_ctrl;
 	commandSend_t command_send_fnc;
 	spiRead_t spi_read_fnc;
+	spiWrite_t spi_write_fnc;
 	delay2us_t delay_2us_fnc;
 }ads1299_t;
 
@@ -134,5 +170,21 @@ Status ads1299_CommandSend(commands_t command);
  * @return	SUCCESS or ERROR
  */
 Status ads1299_RegCommandSend(regCommands_t regCommand, registers_t reg, uint8_t* data);
+
+Status ads1299_ReadData();
+
+void ads1299_wakeup(void);
+void ads1299_enterStandbyMode(void);
+
+//----------------------------------------------
+
+void ads1299_clockSource( clkSel_t clksel);
+void ads1299_START(void);
+void ads1299_RESET(void);
+void ads1299_PWDN(pwdnState_t state);
+static void ads1299_delay_tSDECODE(void);
+static void ads1299_delay_4tCLK(void);
+uint8_t ads1299_readRegister(registers_t registro);
+void ads1299_writeRegister(registers_t registro);
 
 #endif /* INC_ADS1299_H__ */
