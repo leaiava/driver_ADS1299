@@ -55,6 +55,7 @@ void initHardware_CIAA_port(void)  {
 	 Chip_PININT_SetPinModeEdge( LPC_GPIO_PIN_INT, PININTCH( 0 ) );	//Selecciona activo por flanco
 	 Chip_PININT_EnableIntLow( LPC_GPIO_PIN_INT, PININTCH( 0 ) );	//Selecciona activo por flanco descendente
 
+	 NVIC_EnableIRQ( PIN_INT0_IRQn );
 	 // ----- Inicializo el modulo SPI -----
 	 /**
 	 * Configuracion e Inicializacion de puerto SPI
