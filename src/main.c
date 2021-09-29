@@ -57,8 +57,6 @@ int main( void )
 
 	ads1299_continuousConversionStart();
 
-	NVIC_EnableIRQ( PIN_INT0_IRQn );
-
 	uint16_t i=0;
    // ----- Repeat for ever -------------------------
    while( true ) {
