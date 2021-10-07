@@ -43,8 +43,11 @@ void initHardware_CIAA_port(void)  {
 	  */
 	 gpioInit ( CS_PIN	  , GPIO_OUTPUT );
 	 gpioInit ( CLKSEL_PIN, GPIO_OUTPUT );
+	 hardwareClkSel_CIAA_port(INTERNAL_CLOCK);
 	 gpioInit ( START_PIN , GPIO_OUTPUT );
+	 hardwareStart_CIAA_port(START_DISABLE);
 	 gpioInit ( RESET_PIN , GPIO_OUTPUT );
+	 hardwareReset_CIAA_port(RESET_DISABLE);
 	 gpioInit ( DRDY_PIN  , GPIO_INPUT_PULLUP );
 
 	 /**

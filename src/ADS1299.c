@@ -17,7 +17,7 @@ static ads1299_func_t ads1299_control;
 
 /**
  * Flag para marcar que hay un dato listo, la aplicación lo lee a través de la
- * API ads1299_conversionREady.
+ * API ads1299_conversionReady.
  * Se inicializa en ads1299_InitDriver
  */
 static bool flagDataReady;
@@ -36,11 +36,9 @@ extern	bool* ptrFlagDataReady;
  *
  * @details	Se copian los punteros a funciones pasados por argumentos a la estructura interna
  *   		del driver, la cual no puede ser accedida por el resto del programa
- * @param	config	Estructura de configuracion para el driver.
- * @return  fale	: Si algún puntero a función apunta a Null
+ * @param	config	: Estructura de configuracion para el driver.
+ * @return  false	: Si algún puntero a función apunta a Null
  * 			true	: Si pudo cargar todos los punteros a funcion
- * @warning	En esta version no hay asser alguno sobre si los punteros tienen un valor
- * 			distinto de NULL.
  */
 bool ads1299_InitDriver(ads1299_func_t config){
 	if ( config.chip_select_ctrl == 0			/// Chequeo que ningun puntero a función apunte a Null.
@@ -105,6 +103,7 @@ void ads1299_initHardware(void){
 	ads1299_control.clksel_ctrl(INTERNAL_CLOCK);
 #endif
 
+	ads1299_writeRegister( CONFIG3 , ADS1299_CONFIG3_INTERNAL_REF_BUF_EN);
 }
 
 /**
@@ -123,12 +122,13 @@ return id;
  */
 void ads1299_setDataRate(uint8_t config1Data){
 
-	config1Data &= DATA_RATE_MASK;		// aplico mascara para solo tocar los bits del DATA_RATE
+	config1Data &= DATA_RATE_MASK;	// aplico mascara para solo tocar los bits del DATA_RATE
 	uint8_t config1Reg = ads1299_readRegister(CONFIG1);
-	config1Reg &= ~DATA_RATE_MASK;		// pongo en cero los bits del DATA_RATE
-	config1Reg |= config1Data;			// aplico la configuracion del DATA_RATE sin modificar el resto del registro
+	config1Reg &= ~DATA_RATE_MASK;	// pongo en cero los bits del DATA_RATE
+	config1Reg |= config1Data;		// aplico la configuracion del DATA_RATE sin modificar el resto del registro
 	ads1299_writeRegister(CONFIG1, config1Reg);
 }
+
 /**
  * @brief	Lee un regístro interno del ads1299
  * @param	registro	: Registro a leer del tipo registers_t.
@@ -137,13 +137,9 @@ void ads1299_setDataRate(uint8_t config1Data){
 uint8_t ads1299_readRegister(registers_t registro){
 	uint8_t	readValue;
 	ads1299_control.chip_select_ctrl(CS_ENABLE);			///< Necesita 6nS entre CS y que comience el SCLK,
-															///  una instruccion son 4,9nS a 204MHz
 	ads1299_control.spi_write_fnc( SDATAC_CMD);				///< Necesario si esta en RDATAC mode
-	ads1299_delay_tSDECODE();
 	ads1299_control.spi_write_fnc( RREG_CMD | registro );	///< Hago la OR para tener el valor del comando compuesto
-	ads1299_delay_tSDECODE();
 	ads1299_control.spi_write_fnc( NULL_CMD);				///< Indica que leo solo un registro
-	ads1299_delay_tSDECODE();
 	readValue = ads1299_control.spi_read_fnc();
 	ads1299_control.delay_us_fnc(2);						///< Se requiere antes de modificar el CS
 	ads1299_control.chip_select_ctrl(CS_DISABLE);
@@ -155,16 +151,12 @@ uint8_t ads1299_readRegister(registers_t registro){
  *
  */
 void ads1299_writeRegister(registers_t registro, uint8_t data){
-	ads1299_control.chip_select_ctrl(CS_ENABLE);			///< Se requiere despues de modificar el CS
-
-	ads1299_control.spi_write_fnc( SDATAC_CMD);				///< Necesario si esta en RDATAC mode
-	ads1299_delay_tSDECODE();
-	ads1299_control.spi_write_fnc( WREG_CMD | registro );	///< Hago la OR para tener el valor del comando compuesto
-	ads1299_delay_tSDECODE();
-	ads1299_control.spi_write_fnc( NULL_CMD);				///< Indica que leo solo un registro
-	ads1299_delay_tSDECODE();
+	ads1299_control.chip_select_ctrl(CS_ENABLE);
+	ads1299_control.spi_write_fnc( SDATAC_CMD);					///< Necesario si esta en RDATAC mode
+	ads1299_control.spi_write_fnc( WREG_CMD | registro );		///< Hago la OR para tener el valor del comando compuesto
+	ads1299_control.spi_write_fnc( NULL_CMD);					///< Indica que leo solo un registro
 	ads1299_control.spi_write_fnc( data );
-	ads1299_control.delay_us_fnc(2);						///< Se requiere antes de modificar el CS
+	ads1299_control.delay_us_fnc(2);							///< Se requiere antes de modificar el CS
 	ads1299_control.chip_select_ctrl(CS_DISABLE);
 }
 
@@ -176,9 +168,9 @@ void ads1299_writeRegister(registers_t registro, uint8_t data){
  */
 static bool ads1299_sendCommand(commands_t comando){
 	if (comando <= RDATA_CMD){
-		ads1299_control.chip_select_ctrl(CS_ENABLE);///< Necesita 6nS entre CS y que comience el SCLK,
-													///  una instruccion son 4,9nS a 204MHz, hay mas de una instruccion acá.
-		ads1299_control.spi_write_fnc( comando );	///< Hago la OR para tener el valor del comando compuesto
+		ads1299_control.chip_select_ctrl(CS_ENABLE);	///< Necesita 6nS entre CS y que comience el SCLK,
+														///  una instruccion son 4,9nS a 204MHz, hay mas de una instruccion acá.
+		ads1299_control.spi_write_fnc( comando );
 		ads1299_control.delay_us_fnc(2);				///< Se requiere antes de modificar el CS
 		ads1299_control.chip_select_ctrl(CS_DISABLE);
 		return true;
@@ -186,25 +178,25 @@ static bool ads1299_sendCommand(commands_t comando){
 	else
 		return false;
 }
+
 /**
  * @brief	Lee el canal de status y los 8 canales.
  *
  * @param	ptrads1299_data	: Puntero a estructura donde se guardan los datos adquiridos.
  */
 void ads1299_readData(ads1299_data_t* ptrads1299_data){
-
+	uint32_t data;
 	ads1299_control.chip_select_ctrl(CS_ENABLE);
-
-	for (uint8_t i=0 ; i < 9 ; i++){
-		ptrads1299_data->data[i] = 0;
-		ptrads1299_data->data[i] = (uint32_t) ads1299_control.spi_read_fnc();
-		ptrads1299_data->data[i] <<= 8;
-		ptrads1299_data->data[i] |= (uint32_t) ads1299_control.spi_read_fnc();
-		ptrads1299_data->data[i] <<= 8;
-		ptrads1299_data->data[i] |= (uint32_t) ads1299_control.spi_read_fnc();
-	//	ads1299_control.delay_us_fnc(2);
+	for (uint8_t i=0 ; i < (CANTIDAD_DE_CANALES + 1) ; i++){
+		data = 0;
+		data = (uint32_t) ads1299_control.spi_read_fnc();
+		data <<= 8;
+		data |= (uint32_t) ads1299_control.spi_read_fnc();
+		data <<= 8;
+		data |= (uint32_t) ads1299_control.spi_read_fnc();
+		ptrads1299_data->data[i] = (int32_t) data;
 	}
-
+	ads1299_control.delay_us_fnc(2);
 	ads1299_control.chip_select_ctrl(CS_DISABLE);
 }
 
@@ -218,12 +210,13 @@ void ads1299_continuousConversionStart(void){
 
 #ifdef	USE_HARDWARE_START
 	ads1299_control.start_ctrl(START_ENABLE);
-	ads1299_control.delay_us_fnc(2);
+	ads1299_control.delay_us_fnc(9);
 	ads1299_control.start_ctrl(START_DISABLE);
 
 #else
 	ads1299_sendCommand(START_CMD);
 #endif
+
 }
 
 /**
@@ -253,7 +246,7 @@ bool ads1299_conversionReady(void){
  * @param	CHnSETsettings	: OR entre los defines del tipo CHnSET settings.
  */
 void ads1299_CHallSET(uint8_t CHnSETsettings){
-	for ( uint8_t i = CH1SET ; i < (CH8SET+1) ; i++){
+	for ( uint8_t i = CH1SET ; i < (CH1SET+ CANTIDAD_DE_CANALES) ; i++){
 		ads1299_writeRegister( i , CHnSETsettings);
 	}
 }
@@ -281,7 +274,7 @@ void ads1299_RESET(void){
 	ads1299_control.delay_us_fnc(2);
 	ads1299_control.reset_ctrl(RESET_DISABLE);
 #else
-	ads1299_CommandSend(RESET_CMD);
+	ads1299_sendCommand(RESET_CMD);
 #endif
 	ads1299_control.delay_us_fnc(9); // delay de 18TCLk (Si se usa el clk interno es de 2.048MHz
 }
@@ -314,27 +307,5 @@ void ads1299_PWDN(pwdnState_t estado){
 }
 #endif
 
-/**
- * @brief	delay para cumplir con el tiempo tSDECODE que requiere el ads1299
- * @detail	Un comando demora 4tCLK para decodificarse, se requiere que pase
- * 			este tiempo antes de tener otro comando listo
- * 			Un byte se transfiere en 8tSCLK por lo tanto
- * 			8tSCLK > 4tCLK
- * 			2tSCLK > tCLK	Si se cumple esto no requiero delay
- * 			Si no se cumple hay que agregar un delay
- * 			2tSCLK + tDELAY > tCLK
- * 			tDELAY > tCLK - 2tSCLK
- * 			Si uso el CLK interno de 2,048MHz => tCLK = 0,488uS
- * 			Si tCLK < 2tSCLK no necesito delay
- * 			entonces tSCLK > tCLK/2
- * 					 tSCLK > 0,244uS
- * 			      Si fSCLK < 4,1MHz no necesito delay
- *
- * 			Si fSCLK > 4,1MHz el delay que necesito es de:
- * 			tDELAY > tCLK - 2tSCLK
- *
- */
-static void ads1299_delay_tSDECODE(void){
 
-}
 

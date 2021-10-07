@@ -10,15 +10,20 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+/**
+ * @brief	El ADS1299 tiene 8 canales, para usar con el ADS1299-6 o el ADS1299-4
+ * cambiar el siguiente define por la cantidad de canales que posea el dispositivo.
+ */
+#define	CANTIDAD_DE_CANALES	8
 
 /**
  * Los siguientes 4 defines definen si se utilizan esos controles por hardware
  * o se envían los comandos por SPI.
  * Si se utilizan por hardware hay que definir los GPIO en la función de inicialización del hardware.
  */
-#define	USE_HARDWARE_START
-#define USE_HARDWARE_RESET
-#define	USE_HARDWARE_CLKSEL
+//#define	USE_HARDWARE_START
+//#define USE_HARDWARE_RESET
+//#define	USE_HARDWARE_CLKSEL
 //#define USE_HARDWARE_PWDN
 
 /* Register settings */
@@ -291,7 +296,7 @@ typedef void (*clkSelFunction_t)(clkSel_t);
 typedef void (*pwdnFunction_t)(pwdnState_t);
 
 /**
- * Estructura simple con punteros a funciones para separar la capa mas baja del driver
+ * Estructura con punteros a funciones para separar la capa mas baja del driver
  */
 typedef struct {
 	hardwareInit_t hardwareInit_fnc;
@@ -299,17 +304,17 @@ typedef struct {
 	spiWrite_t spi_write_fnc;
 	spiRead_t spi_read_fnc;
 	delayus_t delay_us_fnc;
-	startFunction_t start_ctrl;
-	resetFunction_t reset_ctrl;
-	clkSelFunction_t clksel_ctrl;
-	pwdnFunction_t pwdn_ctrl;
+	startFunction_t start_ctrl;		//!< Opcional
+	resetFunction_t reset_ctrl;		//!< Opcional
+	clkSelFunction_t clksel_ctrl;	//!< Opcional
+	pwdnFunction_t pwdn_ctrl;		//!< Opcional
 }ads1299_func_t;
 
 /**
  * @brief estructura para leer los datos de la conversión del adc
  */
 typedef struct{
-	uint32_t data[9];
+	int32_t data[9];	//!< The device provides 24 bits of data in binary twos complement format.
 }ads1299_data_t;
 
 //----------------------------------------------
@@ -329,7 +334,5 @@ bool ads1299_clockSource( clkSel_t clksel);
 void ads1299_RESET(void);
 void ads1299_sync(void);
 void ads1299_PWDN(pwdnState_t state);
-
-static void ads1299_delay_tSDECODE(void);
 
 #endif /* INC_ADS1299_H__ */
